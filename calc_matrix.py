@@ -13,7 +13,34 @@ parser.add_argument("-f","--image_file",help="image file to mark")
 parser.add_argument("-r","--ref_file",help="ref file to mark")
 args = parser.parse_args()
 
+def pad1(arr):
+    a=np.ones((arr.shape[0],arr.shape[1]+1))
+    a[:,:-1]=arr
+    return a
 
+def pick_colors_pts():
+    start_point=np.array((242.0,193))
+    stepx=(923-111.0)/3.0
+    stepy=(1388-52)/5.0
+    pts=[]
+    for j in range(4):
+        for i in range(6):
+            pts.append(start_point+(stepx*(3-j),stepy*i))
+    return np.array(pts) 
+
+def pick_colors(im,pts,ws=3):
+    colors=[]
+    for pt in pts:
+        val=im[int(pt[1])-ws:int(pt[1])+ws,int(pt[0])-ws:int(pt[0])+ws,:].reshape(-1,3).mean(axis=0)
+        colors.append(val)
+    return np.array(colors)
+
+def apply_mat(img,c_mat):
+    return  (img.reshape((-1,3)) @ c_mat.T).clip(0,255).reshape(img.shape).astype('uint8')
+
+def convert_points(cross_pts1,cross_pts2,pts):
+    M=np.linalg.lstsq(pad1(cross_pts1),pad1(cross_pts2),rcond=None)[0]
+    return (M.T @ pad1(pts).T)[:2,:].T
 
 class CrossMark:
     def __init__(self,img_name,imgref_name):
@@ -54,8 +81,7 @@ class CrossMark:
 
         axchk = plt.axes([0.2, 0.90, 0.2, 0.1])
         self.chk_colors = CheckButtons(axchk,('Show_pts',),actives=[False])
-
-
+        self.chk_colors.on_clicked(self.redraw)
 
         cid = fig.canvas.mpl_connect('button_press_event', self.onclick)
 
@@ -89,6 +115,10 @@ class CrossMark:
         self.draw_objs()  
         plt.draw()
 
+    def redraw(self,event):
+        self.draw_objs()
+        plt.draw()
+
     def draw_objs(self,selected=-1):
         if self.objects_hdls is not None:
             for h in self.objects_hdls:
@@ -97,10 +127,16 @@ class CrossMark:
                     h[0].remove()
                 except ValueError:
                     pass
-
         self.objects_hdls=[]
 
         h=self.objects_hdls
+        
+        if self.chk_colors.get_status()[0]:
+            pts_r = pick_colors_pts()
+            pts = convert_points(np.array(self.cross_list[0]),np.array(self.cross_list[1]),pts_r)
+            h.append(self.sfigs[0].plot(pts_r[:,0],pts_r[:,1],'+g'))    
+            h.append(self.sfigs[1].plot(pts[:,0],pts[:,1],'+g'))    
+
 
         self.sfigs[0].set_title('{}/{}'.format(self.selected_obj_ind+1,len(self.cross_list[0])))
 
@@ -130,9 +166,30 @@ class CrossMark:
             plt.draw()
 
     def save(self,event):
-        with open(self.data_fname,'wb') as fd:
-            pickle.dump(self.object_list,fd)
+        plt.figure()
+        plt.subplot(1,3,1)
+        plt.title('ref')
+        plt.imshow(self.imgr)
 
+        pts_r = pick_colors_pts()
+        plt.plot(pts_r[:,0],pts_r[:,1],'+')
+
+        plt.subplot(1,3,2)
+        plt.title('im corrected')
+        pts = convert_points(np.array(self.cross_list[0]),np.array(self.cross_list[1]),pts_r)
+
+        plt.plot(pts[:,0],pts[:,1],'+')
+        col_r=pick_colors(self.imgr,pts_r)
+        col_im = pick_colors(self.img,pts)
+        CM=np.transpose(np.linalg.lstsq(col_im, col_r, rcond=None)[0])
+        im1_corr =apply_mat(self.img,CM)
+        plt.imshow(im1_corr)
+
+        plt.subplot(1,3,3)
+        plt.title('im1')
+        plt.plot(pts[:,0],pts[:,1],'+')
+        plt.imshow(self.img)
+        plt.show()
 
 
     def add(self,event):
