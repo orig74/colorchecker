@@ -182,6 +182,9 @@ class CrossMark:
         col_r=pick_colors(self.imgr,pts_r)
         col_im = pick_colors(self.img,pts)
         CM=np.transpose(np.linalg.lstsq(col_im, col_r, rcond=None)[0])
+
+        with open('color_mat','wb') as fd:
+            pickle.dump(CM,fd)
         im1_corr =apply_mat(self.img,CM)
         plt.imshow(im1_corr)
 
@@ -208,9 +211,9 @@ class CrossMark:
         x,y=event.xdata,event.ydata
         if ind>-1 and self.selected_obj_ind > -1:
             self.cross_list[ind][self.selected_obj_ind]=(x,y)
-            self.draw_objs()
-            plt.draw()
 #        if ind>=0:
+        self.draw_objs()
+        plt.draw()
             
         #self.sfigs[ind].plot(x,y,'or')
         #if ind >= 0:
