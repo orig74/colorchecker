@@ -207,26 +207,13 @@ class CrossMark:
         #          ('double' if event.dblclick else 'single', event.button,
         #                     event.x, event.y, event.xdata, event.ydata))
         ind=self.sfigs.index(event.inaxes) if event.inaxes in self.sfigs else -1
-        print('inaxes',ind)
+        #print('inaxes',ind,event)
         x,y=event.xdata,event.ydata
-        if ind>-1 and self.selected_obj_ind > -1:
+        if event.button==3 and ind>-1 and self.selected_obj_ind > -1:
             self.cross_list[ind][self.selected_obj_ind]=(x,y)
-#        if ind>=0:
-        self.draw_objs()
-        plt.draw()
+            self.draw_objs()
+            plt.draw()
             
-        #self.sfigs[ind].plot(x,y,'or')
-        #if ind >= 0:
-        #    self.last_ind_ax=ind
-        #    cind=self.get_closest(x,y,ind)
-        #    self.selected_obj_ind=cind
-        #    if cind>-1:
-        #        self.draw_objs(cind)
-        #        self.text_box.set_val(self.object_list[cind]['desc'])
-        #        plt.draw()
-
-        #plt.draw()
-
 
 if __name__=="__main__":
     cr=CrossMark(args.image_file,args.ref_file)
