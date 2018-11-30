@@ -8,9 +8,12 @@ import argparse
 import cv2
 
 
+##testrun 
+## 
+
 parser = argparse.ArgumentParser()
-parser.add_argument("-f","--image_file",help="image file to mark")
-parser.add_argument("-r","--ref_file",help="ref file to mark")
+parser.add_argument("-f","--image_file",help="image file to mark", default='data_raw/samples/2018-11-29-173913.jpg')
+parser.add_argument("-r","--ref_file",help="ref file to mark" , default='data_raw/laminated/-01.png')
 args = parser.parse_args()
 
 def pad1(arr):
@@ -183,7 +186,7 @@ class CrossMark:
         col_im = pick_colors(self.img,pts)
         CM=np.transpose(np.linalg.lstsq(col_im, col_r, rcond=None)[0])
 
-        with open('color_mat','wb') as fd:
+        with open('color_mat.pkl','wb') as fd:
             pickle.dump(CM,fd)
         im1_corr =apply_mat(self.img,CM)
         plt.imshow(im1_corr)
